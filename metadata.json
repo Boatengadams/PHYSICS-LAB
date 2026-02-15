@@ -1,0 +1,5 @@
+{
+  "name": "WASSCE Physics Virtual Lab",
+  "description": "A comprehensive virtual physics laboratory specifically designed for West African Senior High School (SHS) students. Includes realistic simulations for Mechanics, Optics, and Electricity with a dedicated WAEC-style graph board and AI-powered experimental feedback.",
+  "requestFramePermissions": []
+}
