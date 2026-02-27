@@ -9,13 +9,28 @@ interface DataPanelProps {
   onRemove: (id: string) => void;
   setDataPoints: React.Dispatch<React.SetStateAction<ExperimentDataPoint[]>>;
   cgValue?: number | null;
+  selectedId?: string | null;
+  onSelect?: (id: string) => void;
+  onStartMeasurement?: (colKey: string, rowId?: string) => void;
+  activeMeasurement?: { colKey: string, rowId?: string } | null;
 }
 
 const COMMON_UNITS = [
   'cm', 'm', 'g', 'kg', 's', 'cm⁻¹', 'm⁻¹', 's⁻¹', 'g·cm', 'N', 'V', 'A', 'Ω', 'cm²', 'g/cm', 'g/cm²', 'Nm', 'Ncm'
 ];
 
-const DataPanel: React.FC<DataPanelProps> = ({ experiment, dataPoints, onClear, onRemove, setDataPoints, cgValue }) => {
+const DataPanel: React.FC<DataPanelProps> = ({ 
+  experiment, 
+  dataPoints, 
+  onClear, 
+  onRemove, 
+  setDataPoints, 
+  cgValue,
+  selectedId,
+  onSelect,
+  onStartMeasurement,
+  activeMeasurement
+}) => {
   const [columns, setColumns] = useState<string[]>([]);
   const [columnMeta, setColumnMeta] = useState<Record<string, { label: string, unit: string }>>({});
 
@@ -85,24 +100,24 @@ const DataPanel: React.FC<DataPanelProps> = ({ experiment, dataPoints, onClear, 
   };
 
   return (
-    <div className="p-4 lg:p-8 max-w-full overflow-hidden flex flex-col h-full bg-[#f8fafc]">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+    <div className="p-2 md:p-4 lg:p-8 max-w-full overflow-hidden flex flex-col h-full bg-white/40 backdrop-blur-md">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 md:gap-4 mb-4 md:mb-6">
         <div>
-          <h2 className="text-xl font-black text-slate-800 tracking-tight flex items-center gap-2">
-             <span className="bg-blue-700 text-white p-1.5 rounded-lg text-sm">📋</span>
+          <h2 className="text-lg md:text-xl font-black text-slate-800 tracking-tight flex items-center gap-2">
+             <span className="bg-blue-700 text-white p-1 md:p-1.5 rounded-lg text-xs md:sm">📋</span>
              Table of Results
           </h2>
-          <p className="text-slate-400 font-bold uppercase text-[8px] tracking-widest">WASSCE Standard</p>
+          <p className="text-slate-400 font-bold uppercase text-[7px] md:text-[8px] tracking-widest">WASSCE Standard</p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <button onClick={addColumn} className="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase border border-blue-100 hover:bg-blue-100 transition-all">Add Col</button>
-          <button onClick={addRow} className="bg-blue-700 text-white px-3 py-1.5 rounded-lg text-[10px] font-black uppercase shadow-md hover:bg-blue-800 transition-all">+ Row</button>
-          <button onClick={onClear} className="bg-white text-rose-500 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase border border-rose-100 hover:bg-rose-50 transition-all">Reset</button>
+        <div className="flex flex-wrap gap-1 md:gap-2">
+          <button onClick={addColumn} className="bg-blue-50 text-blue-700 px-2 md:px-3 py-1 md:py-1.5 rounded-lg text-[8px] md:text-[10px] font-black uppercase border border-blue-100 hover:bg-blue-100 transition-all">Add Col</button>
+          <button onClick={addRow} className="bg-blue-700 text-white px-2 md:px-3 py-1 md:py-1.5 rounded-lg text-[8px] md:text-[10px] font-black uppercase shadow-md hover:bg-blue-800 transition-all">+ Row</button>
+          <button onClick={onClear} className="bg-white text-rose-500 px-2 md:px-3 py-1 md:py-1.5 rounded-lg text-[8px] md:text-[10px] font-black uppercase border border-rose-100 hover:bg-rose-50 transition-all">Reset</button>
         </div>
       </div>
 
       {experiment.id === 'moments-2025-alt-b' && (
-        <div className="mb-4 bg-white border border-slate-200 rounded-xl p-3 shadow-sm flex items-center justify-between">
+        <div className="mb-4 bg-white/80 border border-slate-200 rounded-xl p-3 shadow-sm flex items-center justify-between">
            <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-emerald-100 text-emerald-700 rounded-lg flex items-center justify-center text-xs font-black">G</div>
               <div>
@@ -118,7 +133,7 @@ const DataPanel: React.FC<DataPanelProps> = ({ experiment, dataPoints, onClear, 
         </div>
       )}
 
-      <div className="flex-1 bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden flex flex-col">
+      <div className="flex-1 bg-white/70 backdrop-blur-sm rounded-xl shadow-lg border border-slate-200 overflow-hidden flex flex-col">
         <div className="overflow-x-auto h-full overflow-y-auto custom-scrollbar">
           <table className="w-full text-left border-collapse min-w-full">
             <thead className="sticky top-0 z-20">
@@ -128,12 +143,21 @@ const DataPanel: React.FC<DataPanelProps> = ({ experiment, dataPoints, onClear, 
                   <th key={col} className="px-3 py-3 border-r border-slate-200 group relative bg-slate-50 min-w-[120px]">
                     <div className="flex flex-col gap-1">
                       <div className="flex justify-between items-center">
-                        <input 
-                          type="text" 
-                          value={columnMeta[col]?.label || col} 
-                          onChange={(e) => handleHeaderEdit(col, e.target.value)} 
-                          className="bg-transparent text-slate-900 font-black uppercase text-[9px] tracking-tight outline-none border-b border-transparent hover:border-blue-400 focus:border-blue-600 w-full" 
-                        />
+                        <div className="flex items-center gap-1 flex-1">
+                          <input 
+                            type="text" 
+                            value={columnMeta[col]?.label || col} 
+                            onChange={(e) => handleHeaderEdit(col, e.target.value)} 
+                            className="bg-transparent text-slate-900 font-black uppercase text-[9px] tracking-tight outline-none border-b border-transparent hover:border-blue-400 focus:border-blue-600 w-full" 
+                          />
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); onStartMeasurement?.(col); }}
+                            className={`p-1 rounded hover:bg-blue-100 transition-colors ${activeMeasurement?.colKey === col && !activeMeasurement.rowId ? 'bg-blue-200 text-blue-700' : 'text-slate-400'}`}
+                            title="Measure from Lab"
+                          >
+                            📏
+                          </button>
+                        </div>
                         {!['x', 'y', 'label'].includes(col) && !experiment.variables.columns?.some(c => c.key === col) && (
                           <button onClick={() => deleteColumn(col)} className="text-rose-400 opacity-0 group-hover:opacity-100 transition-all p-0.5 hover:bg-rose-50 rounded">×</button>
                         )}
@@ -157,10 +181,14 @@ const DataPanel: React.FC<DataPanelProps> = ({ experiment, dataPoints, onClear, 
             </thead>
             <tbody className="divide-y divide-slate-100">
               {dataPoints.map((point, idx) => (
-                <tr key={point.id} className="hover:bg-blue-50/20 transition-colors group">
-                  <td className="px-3 py-2 text-slate-400 font-mono text-[10px] text-center font-bold bg-slate-50/50 border-r border-slate-100">{idx + 1}</td>
+                <tr 
+                  key={point.id} 
+                  onClick={() => onSelect?.(point.id)}
+                  className={`transition-colors group cursor-pointer ${selectedId === point.id ? 'bg-blue-100/50 border-l-4 border-l-blue-600' : 'hover:bg-blue-50/20'}`}
+                >
+                  <td className={`px-3 py-2 text-slate-400 font-mono text-[10px] text-center font-bold border-r border-slate-100 ${selectedId === point.id ? 'bg-blue-100/30 text-blue-700' : 'bg-slate-50/50'}`}>{idx + 1}</td>
                   {columns.map(col => (
-                    <td key={col} className="px-0 py-0 border-r border-slate-100">
+                    <td key={col} className={`px-0 py-0 border-r border-slate-100 relative group/cell ${activeMeasurement?.colKey === col && activeMeasurement?.rowId === point.id ? 'bg-blue-100/50' : ''}`}>
                       <input 
                         type="text" 
                         value={point[col] ?? ''} 
@@ -172,6 +200,12 @@ const DataPanel: React.FC<DataPanelProps> = ({ experiment, dataPoints, onClear, 
                         className="w-full h-full px-3 py-3 text-xs font-mono font-bold text-slate-700 bg-transparent outline-none focus:bg-blue-50/30 text-center" 
                         placeholder="0.0" 
                       />
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); onStartMeasurement?.(col, point.id); }}
+                        className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover/cell:opacity-100 p-1 bg-white/80 rounded shadow-sm hover:bg-blue-50 text-[10px] transition-all"
+                      >
+                        📏
+                      </button>
                     </td>
                   ))}
                   <td className="px-2 py-2 text-right">

@@ -10,20 +10,38 @@ interface GraphBoardProps {
 
 const GraphBoard: React.FC<GraphBoardProps> = ({ experiment, dataPoints }) => {
   const svgRef = useRef<SVGSVGElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [stats, setStats] = useState({ slope: 0, intercept: 0 });
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const isMomentsLab = experiment.id === 'moments-2025-alt-b';
 
   useEffect(() => {
-    if (!svgRef.current || dataPoints.length < 2) return;
+    if (!containerRef.current) return;
+    const observer = new ResizeObserver(entries => {
+      if (entries[0]) {
+        setDimensions({
+          width: entries[0].contentRect.width,
+          height: entries[0].contentRect.height
+        });
+      }
+    });
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
 
-    const margin = { top: 40, right: 40, bottom: 60, left: 80 };
-    const width = 800 - margin.left - margin.right;
-    const height = 600 - margin.top - margin.bottom;
+  useEffect(() => {
+    if (!svgRef.current || dataPoints.length < 2 || dimensions.width === 0) return;
+
+    const margin = { top: 40, right: 40, bottom: 60, left: 60 };
+    const width = dimensions.width - margin.left - margin.right;
+    const height = dimensions.height - margin.top - margin.bottom;
+
+    if (width <= 0 || height <= 0) return;
 
     d3.select(svgRef.current).selectAll('*').remove();
     const svg = d3.select(svgRef.current)
-      .attr('width', width + margin.left + margin.right)
-      .attr('height', height + margin.top + margin.bottom)
+      .attr('width', dimensions.width)
+      .attr('height', dimensions.height)
       .append('g')
       .attr('transform', `translate(${margin.left},${margin.top})`);
 
@@ -63,44 +81,44 @@ const GraphBoard: React.FC<GraphBoardProps> = ({ experiment, dataPoints }) => {
     svg.append('line').attr('x1', x(0)).attr('y1', y(intercept)).attr('x2', x(xRange)).attr('y2', y(slope * xRange + intercept))
       .attr('stroke', '#ef4444').attr('stroke-width', 2).attr('stroke-dasharray', '5,5');
 
-  }, [dataPoints, experiment]);
+  }, [dataPoints, experiment, dimensions]);
 
   const calculatedW = isMomentsLab ? (100 * stats.slope) / (1 - stats.slope) : null;
 
   return (
-    <div className="flex flex-col h-full overflow-hidden p-6 gap-6">
+    <div className="flex flex-col h-full overflow-hidden p-4 md:p-6 gap-4 md:gap-6">
       <div className="flex justify-between items-start">
         <div>
-          <h2 className="text-xl font-bold text-slate-800">Graph Board</h2>
-          <p className="text-sm text-slate-500">WAEC standard scale representation</p>
+          <h2 className="text-lg md:text-xl font-bold text-slate-800">Graph Board</h2>
+          <p className="text-xs md:text-sm text-slate-500">WAEC standard scale representation</p>
         </div>
       </div>
 
-      <div className="flex-1 flex gap-6 overflow-hidden">
-        <div className="flex-1 bg-white border-4 border-slate-200 rounded shadow-inner overflow-auto flex justify-center items-center p-4 waec-grid">
+      <div className="flex-1 flex flex-col lg:flex-row gap-4 md:gap-6 overflow-hidden">
+        <div ref={containerRef} className="flex-1 bg-white border-4 border-slate-200 rounded shadow-inner overflow-hidden flex justify-center items-center p-2 md:p-4 waec-grid min-h-[300px]">
           {dataPoints.length >= 2 ? (
-            <svg ref={svgRef} className="max-w-full max-h-full"></svg>
+            <svg ref={svgRef} className="w-full h-full"></svg>
           ) : (
             <div className="text-center text-slate-400 max-w-sm">
-              <span className="text-6xl block mb-4">📈</span>
-              <p className="font-medium">Capture at least 2 readings to generate the graph.</p>
+              <span className="text-4xl md:text-6xl block mb-4">📈</span>
+              <p className="font-medium text-sm">Capture at least 2 readings to generate the graph.</p>
             </div>
           )}
         </div>
 
-        <div className="w-80 space-y-4">
-          <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Gradient Analysis</h3>
-            <div className="space-y-4">
+        <div className="w-full lg:w-80 space-y-4 overflow-y-auto lg:overflow-visible pr-1">
+          <div className="bg-white p-4 md:p-5 rounded-xl shadow-sm border border-slate-200">
+            <h3 className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 md:mb-4">Gradient Analysis</h3>
+            <div className="space-y-3 md:space-y-4">
               <div>
-                <p className="text-xs text-slate-500">Equation of Line</p>
-                <p className="text-sm font-mono font-bold text-slate-800">
+                <p className="text-[10px] md:text-xs text-slate-500">Equation of Line</p>
+                <p className="text-xs md:text-sm font-mono font-bold text-slate-800">
                   P = {stats.slope.toFixed(4)}X⁻¹ + {stats.intercept.toFixed(4)}
                 </p>
               </div>
-              <div className="pt-4 border-t border-slate-100">
-                <p className="text-xs text-slate-500">Slope (S)</p>
-                <span className="text-2xl font-bold text-indigo-600">{stats.slope.toFixed(4)}</span>
+              <div className="pt-3 md:pt-4 border-t border-slate-100">
+                <p className="text-[10px] md:text-xs text-slate-500">Slope (S)</p>
+                <span className="text-xl md:text-2xl font-bold text-indigo-600">{stats.slope.toFixed(4)}</span>
               </div>
             </div>
           </div>

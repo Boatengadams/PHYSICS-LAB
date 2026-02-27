@@ -5,18 +5,24 @@ import { APPARATUS_LIST } from '../constants';
 
 interface ApparatusSidebarProps {
   category: LabCategory;
+  onClose?: () => void;
 }
 
-const ApparatusSidebar: React.FC<ApparatusSidebarProps> = ({ category }) => {
+const ApparatusSidebar: React.FC<ApparatusSidebarProps> = ({ category, onClose }) => {
   const filtered = APPARATUS_LIST.filter(a => a.category === category);
 
   return (
-    <aside className="w-64 h-full bg-slate-800 border-r border-slate-700 flex flex-col shadow-xl z-20">
-      <div className="p-5 border-b border-slate-700 bg-slate-800/50">
-        <h3 className="font-bold text-slate-100 flex items-center gap-2 text-sm uppercase tracking-widest">
-          <span className="text-lg">🛠️</span> Apparatus Shelf
-        </h3>
-        <p className="text-[10px] text-slate-500 mt-1 uppercase font-bold tracking-tighter italic">Standard Lab Inventory</p>
+    <aside className="w-full h-full bg-slate-800/40 backdrop-blur-md border-r border-slate-700/30 flex flex-col shadow-xl z-20">
+      <div className="p-5 border-b border-slate-700/30 bg-slate-800/30 flex justify-between items-center">
+        <div>
+          <h3 className="font-bold text-slate-100 flex items-center gap-2 text-sm uppercase tracking-widest">
+            <span className="text-lg">🛠️</span> Apparatus Shelf
+          </h3>
+          <p className="text-[10px] text-slate-500 mt-1 uppercase font-bold tracking-tighter italic">Standard Lab Inventory</p>
+        </div>
+        {onClose && (
+          <button onClick={onClose} className="lg:hidden text-slate-400 hover:text-white p-1">✕</button>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
